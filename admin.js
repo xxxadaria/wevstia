@@ -26,6 +26,9 @@ class AdminDashboard {
     this.products = [];
     this.orders = [];
     this.customers = [];
+    this.activeSection = 'dashboard';
+    this.realtimeChannels = [];
+    this.refreshTimers = {};
     this.supabase = supabaseClient;
     this.init();
   }
@@ -51,8 +54,59 @@ class AdminDashboard {
         this.initNavigation();
         this.initModals();
         this.initFilters();
+        this.setupRealtimeSync();
         this.updateTime();
         setInterval(() => this.updateTime(), 1000);
+    }
+
+    setupRealtimeSync() {
+        this.subscribeToTable('products', () => {
+            this.loadDashboardData();
+            this.loadInventory();
+            if (this.activeSection === 'products') this.loadProducts();
+        });
+
+        this.subscribeToTable('orders', () => {
+            this.loadDashboardData();
+            if (this.activeSection === 'orders') this.loadAllOrders();
+        });
+
+        this.subscribeToTable('customers', () => {
+            if (this.activeSection === 'users') this.loadCustomers();
+        });
+
+        window.addEventListener('beforeunload', () => this.unsubscribeAll());
+    }
+
+    subscribeToTable(tableName, onChange) {
+        const channel = this.supabase
+            .channel(`realtime:${tableName}`)
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: tableName },
+                () => this.scheduleRefresh(tableName, onChange)
+            )
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log(`Realtime synced: ${tableName}`);
+                }
+            });
+
+        this.realtimeChannels.push(channel);
+    }
+
+    scheduleRefresh(tableName, callback) {
+        clearTimeout(this.refreshTimers[tableName]);
+        this.refreshTimers[tableName] = setTimeout(() => {
+            callback();
+        }, 250);
+    }
+
+    unsubscribeAll() {
+        this.realtimeChannels.forEach(channel => {
+            this.supabase.removeChannel(channel);
+        });
+        this.realtimeChannels = [];
     }
 
     // логин
@@ -284,6 +338,7 @@ class AdminDashboard {
     }
 
     showSection(id) {
+        this.activeSection = id;
         document.querySelectorAll('section').forEach(s => s.style.display = 'none');
         document.getElementById(id).style.display = 'block';
         document.getElementById('pageTitle').textContent = id.charAt(0).toUpperCase() + id.slice(1);
