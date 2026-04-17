@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard Toys R Us</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="admin.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head> 
+<body>
+    <div id="loginModal" class="login-modal">
+        <div class="login-form">
+            <div class="login-header">
+                <i class="fas fa-crown"></i>
+                <h2>Admin Panel</h2>
+                <p>Toys "R" Us</p>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="admin@toysrus.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn btn-add full-width">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+                <div class="login-demo">
+                    admin@toysrus.com / toys2024
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <nav class="sidebar" id="sidebar">
+        <div class="logo-admin">
+            <i class="fas fa-crown"></i>
+            <div class="logo-title">Admin Panel</div>
+            <div id="currentUser"></div>
+        </div>
+        <button class="mobile-menu-btn" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+        </button>
+        <ul class="nav-admin">
+            <li><a href="#dashboard" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="#products"><i class="fas fa-box"></i> Products</a></li>
+            <li><a href="#orders"><i class="fas fa-shopping-cart"></i> Orders</a></li>
+            <li><a href="#inventory"><i class="fas fa-warehouse"></i> Inventory</a></li>
+            <li><a href="#users"><i class="fas fa-users"></i> Customers</a></li>
+            <li><a href="#settings"><i class="fas fa-cog"></i> Settings</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <button class="btn btn-delete full-width" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="header-admin">
+            <div class="header-left">
+                <h1 id="pageTitle">Dashboard</h1>
+                <p id="welcomeText">Welcome!</p>
+            </div>
+            <div class="header-right">
+                <span id="currentTime"></span>
+                <div class="user-avatar" onclick="logout()">
+                    <i class="fas fa-user"></i>
+                </div>
+            </div>
+        </header>
+        <!-- dashboard -->
+        <section id="dashboard">
+            <div class="dashboard-grid">
+                <div class="dash-card">
+                    <span class="region-badge region-ru">🇷🇺 RU</span>
+                    <div class="dash-number" id="ruOrders">1,247</div>
+                    <h3>RU Orders</h3>
+                    <div class="trend positive">+23%</div>
+                </div>
+                <div class="dash-card">
+                    <span class="region-badge region-us">🇺🇸 US</span>
+                    <div class="dash-number" id="usOrders">856</div>
+                    <h3>US Orders</h3>
+                    <div class="trend positive">+15%</div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-number" id="totalRevenue">$2.4M</div>
+                    <h3>Total Revenue</h3>
+                    <div class="trend positive">+18%</div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-number" id="totalProducts">856</div>
+                    <h3>Products</h3>
+                    <div class="trend positive">42 Active</div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div class="table-header">
+                    <h3>📦 Recent Orders</h3>
+                    <span id="lastUpdate">Updated now</span>
+                </div>
+                <table id="ordersTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Customer</th>
+                            <th>Amount</th>
+                            <th>Region</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Products Section -->
+        <section id="products" style="display: none;">
+            <div class="table-container">
+                <div class="table-header flex-space-between">
+                    <h3>📦 Products (<span id="productsCount">0</span>)</h3>
+                    <button class="btn btn-add" onclick="openProductModal()">➕ Add Product</button>
+                </div>
+                <table id="productsTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Photo</th>
+                            <th>Name</th>
+                            <th>RU/US Price</th>
+                            <th>RU Stock</th>
+                            <th>US Stock</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Orders Section -->
+        <section id="orders" style="display: none;">
+            <div class="table-container">
+                <div class="table-header">
+                    <h3>🛒 All Orders</h3>
+                    <select id="ordersRegionFilter" onchange="loadAllOrders()">
+                        <option value="">All Regions</option>
+                        <option value="RU">🇷🇺 Russia</option>
+                        <option value="US">🇺🇸 USA</option>
+                    </select>
+                </div>
+                <table id="allOrdersTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Customer</th>
+                            <th>Items</th>
+                            <th>Amount</th>
+                            <th>Region</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Inventory Section -->
+        <section id="inventory" style="display: none;">
+            <div class="table-container">
+                <h3 class="table-title">📦 Inventory (Low Stock Alert)</h3>
+                <table id="inventoryTable">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>RU Stock</th>
+                            <th>US Stock</th>
+                            <th>Min Stock</th>
+                            <th>RU Status</th>
+                            <th>US Status</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Customers Section -->
+        <section id="users" style="display: none;">
+            <div class="table-container">
+                <h3 class="table-title">👥 Customers (<span id="usersCount">0</span>)</h3>
+                <table id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Region</th>
+                            <th>Orders</th>
+                            <th>Total Spent</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section id="settings" style="display: none;">
+            <div class="table-container">
+                <h3 class="table-title">⚙️ Settings</h3>
+                <div class="settings-content">
+                    <div class="form-group">
+                        <label>USD → RUB Rate</label>
+                        <input type="number" id="usdRate" value="95.5" step="0.1">
+                        <button class="btn btn-add" onclick="saveUsdRate()">Save</button>
+                    </div>
+                    <div class="form-group">
+                        <label>RU Shipping (₽)</label>
+                        <input type="number" id="ruShipping" value="350">
+                    </div>
+                    <div class="form-group">
+                        <label>US Shipping ($)</label>
+                        <input type="number" id="usShipping" value="9.99" step="0.01">
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Product Modal -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="productModalTitle">➕ Add Product</h2>
+                <button class="modal-close" onclick="closeProductModal()">×</button>
+            </div>
+            <form id="productForm">
+                <input type="hidden" id="editProductId">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="productName" placeholder="LEGO Classic Box" required>
+                </div>
+                <div class="form-group">
+                    <label>Image URL</label>
+                    <input type="url" id="productImage" placeholder="https://example.com/image.jpg">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>RU Price (₽)</label>
+                        <input type="number" id="productPriceRu" placeholder="1999" required>
+                    </div>
+                    <div class="form-group">
+                        <label>US Price ($)</label>
+                        <input type="number" id="productPriceUs" placeholder="25.99" step="0.01" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>RU Stock</label>
+                        <input type="number" id="stockRu" placeholder="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label>US Stock</label>
+                        <input type="number" id="stockUs" placeholder="50" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="productCategory">
+                            <option>Constructors</option>
+                            <option>Dolls</option>
+                            <option>Cars</option>
+                            <option>Board Games</option>
+                            <option>Puzzles</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="productStatus">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-add">✅ Save</button>
+                    <button type="button" class="btn btn-cancel" onclick="closeProductModal()">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
