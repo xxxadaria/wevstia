@@ -1,12 +1,27 @@
 
-const SUPABASE_URL = 'https://qlenulpcvbwntvfiznbz.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_UdRnJVbhXNvhdomlQo2_DQ_MyVGxJdA';
+const DEFAULT_SUPABASE_URL = 'https://qlenulpcvbwntvfiznbz.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_UdRnJVbhXNvhdomlQo2_DQ_MyVGxJdA';
 
-const { createClient } = supabase;
-const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+async function loadRuntimeConfig() {
+  try {
+    const response = await fetch('/config');
+    if (!response.ok) throw new Error('Runtime config is unavailable');
+    return await response.json();
+  } catch (error) {
+    console.warn('Using default Supabase config');
+    return {};
+  }
+}
+
+function createSupabaseClient(config = {}) {
+  const { createClient } = supabase;
+  const supabaseUrl = config.supabaseUrl || DEFAULT_SUPABASE_URL;
+  const supabaseAnonKey = config.supabaseAnonKey || DEFAULT_SUPABASE_ANON_KEY;
+  return createClient(supabaseUrl, supabaseAnonKey);
+}
 
 class AdminDashboard {
-  constructor() {
+  constructor(supabaseClient) {
     this.currentUser = null;
     this.products = [];
     this.orders = [];
@@ -343,13 +358,21 @@ class AdminDashboard {
 }
 
 //запуск
-const admin = new AdminDashboard();
+let admin;
+
+async function bootstrap() {
+  const runtimeConfig = await loadRuntimeConfig();
+  const supabaseClient = createSupabaseClient(runtimeConfig);
+  admin = new AdminDashboard(supabaseClient);
+}
+
+bootstrap();
 
 //глобальные функ
 window.openProductModal = AdminDashboard.openProductModal.bind(AdminDashboard);
 window.closeProductModal = AdminDashboard.closeProductModal.bind(AdminDashboard);
 window.toggleSidebar = AdminDashboard.toggleSidebar.bind(AdminDashboard);
-window.logout = () => admin.logout();
+window.logout = () => admin?.logout();
 
 // закрытие модала кликом вне
 window.onclick = (e) => {

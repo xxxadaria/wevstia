@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: adminpanel
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: SUPABASE_URL
+        value: https://qlenulpcvbwntvfiznbz.supabase.co
+      - key: SUPABASE_ANON_KEY
+        sync: false
